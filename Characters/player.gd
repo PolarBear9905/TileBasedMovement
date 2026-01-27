@@ -46,7 +46,7 @@ func _physics_process(_delta):
 	update_animation_parameters(last_input_direction if force_slide else input_direction)
 	
 	if river_sliding:
-		velocity = river_dir * river_push_speed
+		velocity = velocity.lerp(river_dir * river_push_speed,0.20)
 	else:
 		velocity = input_direction * move_speed
 	
@@ -71,7 +71,7 @@ func get_river_dir() -> Vector2:
 	if not river_map:
 		return Vector2.ZERO
 	
-	var current_tile = river_map.local_to_map(global_position + Vector2(0, 4))
+	var current_tile = river_map.local_to_map(global_position + Vector2(0,4))
 	var data = river_map.get_cell_tile_data(current_tile)
 	
 	if data:
@@ -91,3 +91,8 @@ func pick_new_state(force_slide: bool):
 		state_machine.travel("Walk")
 	else:
 		state_machine.travel("Idle")
+
+func _on_area_2d_area_entered(area: Area2D) -> void:
+	if area.is_in_group("Door"):
+		position.x = 88
+		position.y = 36

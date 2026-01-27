@@ -236,7 +236,7 @@ states/Walk/node = SubResource("AnimationNodeBlendSpace2D_vb825")
 states/Walk/position = Vector2(508, 100)
 transitions = ["Start", "Idle", SubResource("AnimationNodeStateMachineTransition_vb825"), "Walk", "Idle", SubResource("AnimationNodeStateMachineTransition_eovys"), "Idle", "Walk", SubResource("AnimationNodeStateMachineTransition_65n15")]
 
-[node name="Player" type="CharacterBody2D"]
+[node name="Player" type="CharacterBody2D" groups=["Player"]]
 script = ExtResource("1_eovys")
 starting_direction = Vector2(0, -1)
 
