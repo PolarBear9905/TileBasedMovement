@@ -53,7 +53,6 @@ func _physics_process(delta):
 	update_animation_parameters(last_input_direction if force_slide else input_direction)
 
 	if river_sliding:
-		velocity = velocity.lerp(river_dir * river_push_speed,0.20)
 		velocity = river_dir * river_push_speed
 		move_and_slide()
 	else:
