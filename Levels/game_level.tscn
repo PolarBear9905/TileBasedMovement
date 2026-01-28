@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://bm0tsyv4kwghd" path="res://Characters/player.tscn" id="1_up8ek"]
 [ext_resource type="Texture2D" uid="uid://bug7tct238of3" path="res://Art/My Pixel World/tileset/tileset.png" id="2_wlvk4"]
-[ext_resource type="PackedScene" uid="uid://if1q8x3lk8ro" path="res://Levels/Door.tscn" id="3_wmi5p"]
+[ext_resource type="PackedScene" path="res://Levels/Door.tscn" id="3_wmi5p"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_wownj"]
 texture = ExtResource("2_wlvk4")
