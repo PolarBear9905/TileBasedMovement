@@ -53,6 +53,7 @@ func _physics_process(delta):
 	update_animation_parameters(last_input_direction if force_slide else input_direction)
 
 	if river_sliding:
+		center_on_river(river_dir, delta)
 		velocity = river_dir * river_push_speed
 		move_and_slide()
 	else:
@@ -104,12 +105,12 @@ func is_on_ice() -> bool:
 	if data:
 		return data.get_custom_data("is_ice")
 	return false
-
+	
 func get_river_dir() -> Vector2:
 	if not river_map:
 		return Vector2.ZERO
 	
-	var current_tile = river_map.local_to_map(global_position + Vector2(0,4))
+	var current_tile = river_map.local_to_map(global_position)
 
 	var data = river_map.get_cell_tile_data(current_tile)
 
@@ -119,6 +120,16 @@ func get_river_dir() -> Vector2:
 		if data.get_custom_data("river_right") == true:
 			return Vector2(1, 0)
 	return Vector2.ZERO
+
+func center_on_river(river_dir: Vector2, delta: float):
+	var tile_pos = river_map.local_to_map(global_position)
+	var tile_center = river_map.map_to_local(tile_pos) + Vector2(6, 6)
+
+	if river_dir.y != 0:
+		global_position.x = lerp(global_position.x, tile_center.x, 5 * delta)
+
+	if river_dir.x != 0:
+		global_position.y = lerp(global_position.y, tile_center.y, 5 * delta)
 
 func update_animation_parameters(move_input : Vector2):
 	if move_input != Vector2.ZERO:
