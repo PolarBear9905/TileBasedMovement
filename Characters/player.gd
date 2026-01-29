@@ -18,6 +18,7 @@ var _step_dir := Vector2.ZERO
 var _step_remaining := 0.0
 const _STEP_PIXELS := 16.0
 
+# Queue steps of the player
 const _MAX_QUEUE := 6
 var _dir_queue: Array[Vector2] = []
 var _last_pressed_dir := Vector2.ZERO
@@ -37,6 +38,7 @@ func _physics_process(delta):
 
 	var input_direction = Vector2.ZERO
 
+	# Force slide part
 	if force_slide:
 		_dir_queue.clear()
 		_step_active = false
@@ -100,6 +102,7 @@ func _physics_process(delta):
 
 	pick_new_state(false)
 
+# Queue movement helper code
 func _capture_queue_inputs():
 	var d := _get_just_pressed_dir()
 	if d != Vector2.ZERO:
@@ -132,6 +135,7 @@ func _get_just_pressed_dir() -> Vector2:
 		return Vector2(0, 1)
 	return Vector2.ZERO
 
+# Holding down a key function
 func _get_held_dir() -> Vector2:
 	if _last_pressed_dir != Vector2.ZERO:
 		if _last_pressed_dir == Vector2(-1, 0) and Input.is_action_pressed("left"):
