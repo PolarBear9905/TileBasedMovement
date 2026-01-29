@@ -16,7 +16,11 @@ var sliding = false
 var _step_active := false
 var _step_dir := Vector2.ZERO
 var _step_remaining := 0.0
-const _STEP_PIXELS := 16.0   # 1 TILE = 16 PX
+const _STEP_PIXELS := 16.0
+
+const _MAX_QUEUE := 6
+var _dir_queue: Array[Vector2] = []
+var _last_pressed_dir := Vector2.ZERO
 
 func _ready():
 	update_animation_parameters(starting_direction)
@@ -29,63 +33,95 @@ func _physics_process(delta):
 	var river_sliding = river_dir != Vector2.ZERO
 	var force_slide = sliding or river_sliding
 
+	_capture_queue_inputs()
+
 	var input_direction = Vector2.ZERO
 
-	if river_sliding:
-		input_direction = river_dir
-		last_input_direction = river_dir
-	elif sliding and last_input_direction != Vector2.ZERO:
-		input_direction = last_input_direction
-	else:
-		if not _step_active:
-			var dir = _get_step_dir()
-			if dir != Vector2.ZERO:
-				_step_active = true
-				_step_dir = dir
-				_step_remaining = _STEP_PIXELS
-				last_input_direction = dir
+	if force_slide:
+		_dir_queue.clear()
+		_step_active = false
+		_step_remaining = 0.0
 
-		if _step_active:
-			input_direction = _step_dir
+		if river_sliding:
+			input_direction = river_dir
+			last_input_direction = river_dir
+		elif sliding and last_input_direction != Vector2.ZERO:
+			input_direction = last_input_direction
 		else:
 			input_direction = Vector2.ZERO
 
-	update_animation_parameters(last_input_direction if force_slide else input_direction)
+		update_animation_parameters(last_input_direction if force_slide else input_direction)
 
-	if river_sliding:
-		center_on_river(river_dir, delta)
-		velocity = river_dir * river_push_speed
-		move_and_slide()
-	else:
-		if force_slide:
-			velocity = input_direction * move_speed
+		if river_sliding:
+			center_on_river(river_dir, delta)
+			velocity = river_dir * river_push_speed
 			move_and_slide()
 		else:
-			if _step_active:
-				var move_amount = min(move_speed * delta, _step_remaining)
-				var motion = _step_dir * move_amount
-				var col = move_and_collide(motion)
+			velocity = input_direction * move_speed
+			move_and_slide()
 
-				if col:
-					_step_active = false
-					_step_remaining = 0.0
-					velocity = Vector2.ZERO
-				else:
-					_step_remaining -= move_amount
-					velocity = _step_dir * move_speed
-					if _step_remaining <= 0.0:
-						_step_active = false
-						_step_remaining = 0.0
-						velocity = Vector2.ZERO
-			else:
+		if get_slide_collision_count() > 0:
+			last_input_direction = Vector2.ZERO
+
+		pick_new_state(true)
+		return
+
+	if not _step_active:
+		_try_start_step_from_queue_or_hold()
+
+	if _step_active:
+		input_direction = _step_dir
+	else:
+		input_direction = Vector2.ZERO
+
+	update_animation_parameters(input_direction if input_direction != Vector2.ZERO else last_input_direction)
+
+	if _step_active:
+		var move_amount = min(move_speed * delta, _step_remaining)
+		var motion = _step_dir * move_amount
+		var col = move_and_collide(motion)
+
+		if col:
+			_step_active = false
+			_step_remaining = 0.0
+			velocity = Vector2.ZERO
+			_dir_queue.clear()
+		else:
+			_step_remaining -= move_amount
+			velocity = _step_dir * move_speed
+
+			if _step_remaining <= 0.0:
+				_step_active = false
+				_step_remaining = 0.0
 				velocity = Vector2.ZERO
+				_try_start_step_from_queue_or_hold()
+	else:
+		velocity = Vector2.ZERO
 
-	if force_slide and get_slide_collision_count() > 0:
-		last_input_direction = Vector2.ZERO
+	pick_new_state(false)
 
-	pick_new_state(force_slide)
+func _capture_queue_inputs():
+	var d := _get_just_pressed_dir()
+	if d != Vector2.ZERO:
+		_last_pressed_dir = d
+		if _dir_queue.size() < _MAX_QUEUE:
+			_dir_queue.append(d)
 
-func _get_step_dir() -> Vector2:
+func _try_start_step_from_queue_or_hold():
+	var dir := Vector2.ZERO
+
+	if _dir_queue.size() > 0:
+		dir = _dir_queue.pop_front()
+	else:
+		dir = _get_held_dir()
+
+	if dir != Vector2.ZERO:
+		_step_active = true
+		_step_dir = dir
+		_step_remaining = _STEP_PIXELS
+		last_input_direction = dir
+
+func _get_just_pressed_dir() -> Vector2:
 	if Input.is_action_just_pressed("left"):
 		return Vector2(-1, 0)
 	if Input.is_action_just_pressed("right"):
@@ -94,6 +130,28 @@ func _get_step_dir() -> Vector2:
 		return Vector2(0, -1)
 	if Input.is_action_just_pressed("down"):
 		return Vector2(0, 1)
+	return Vector2.ZERO
+
+func _get_held_dir() -> Vector2:
+	if _last_pressed_dir != Vector2.ZERO:
+		if _last_pressed_dir == Vector2(-1, 0) and Input.is_action_pressed("left"):
+			return _last_pressed_dir
+		if _last_pressed_dir == Vector2(1, 0) and Input.is_action_pressed("right"):
+			return _last_pressed_dir
+		if _last_pressed_dir == Vector2(0, -1) and Input.is_action_pressed("up"):
+			return _last_pressed_dir
+		if _last_pressed_dir == Vector2(0, 1) and Input.is_action_pressed("down"):
+			return _last_pressed_dir
+
+	if Input.is_action_pressed("left"):
+		return Vector2(-1, 0)
+	if Input.is_action_pressed("right"):
+		return Vector2(1, 0)
+	if Input.is_action_pressed("up"):
+		return Vector2(0, -1)
+	if Input.is_action_pressed("down"):
+		return Vector2(0, 1)
+
 	return Vector2.ZERO
 
 func is_on_ice() -> bool:
@@ -105,13 +163,12 @@ func is_on_ice() -> bool:
 	if data:
 		return data.get_custom_data("is_ice")
 	return false
-	
+
 func get_river_dir() -> Vector2:
 	if not river_map:
 		return Vector2.ZERO
-	
-	var current_tile = river_map.local_to_map(global_position)
 
+	var current_tile = river_map.local_to_map(global_position)
 	var data = river_map.get_cell_tile_data(current_tile)
 
 	if data:
